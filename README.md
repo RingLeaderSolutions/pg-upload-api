@@ -5,6 +5,7 @@ Repository for the upload API, built with ASP.NET Core.
 ## Getting started
 
 **REQUIRED** You will need to substitute in values for the following app settings values:
+
 | Variable name | Description |
 |---------------|-------------|
 | StorageAccountName | Name of the blob storage account to proxy uploads to |
