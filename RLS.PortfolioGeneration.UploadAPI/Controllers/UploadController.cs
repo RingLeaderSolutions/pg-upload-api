@@ -14,7 +14,6 @@ using RLS.PortfolioGeneration.UploadAPI.Model;
 
 namespace RLS.PortfolioGeneration.UploadAPI.Controllers
 {
-
     [Route("/api/upload")]
     public class UploadController : Controller   
     {
@@ -39,24 +38,38 @@ namespace RLS.PortfolioGeneration.UploadAPI.Controllers
             };
         }
 
-        [HttpPost("topline/{portfolio}")]
+        [HttpPost("supply/{portfolioId}")]
         [Consumes("application/json", "application/json-patch+json", "multipart/form-data")]
-        public Task<ObjectResult> UploadTopline(ICollection<IFormFile> files, string portfolio)
+        public Task<ObjectResult> UploadSupplyMeterData(ICollection<IFormFile> files, string portfolioId)
         {
-            return UploadFile(files, UploadType.Topline, portfolio);
+            return UploadFile(files, UploadType.MeterSupplyData, portfolioId);
         }
 
-        [HttpPost("historic/{portfolio}")]
+        [HttpPost("historic/{portfolioId}")]
         [Consumes("application/json", "application/json-patch+json", "multipart/form-data")]
-        public Task<ObjectResult> UploadHistoric(ICollection<IFormFile> files, string portfolio)
+        public Task<ObjectResult> UploadHistoric(ICollection<IFormFile> files, string portfolioId)
         {
-            return UploadFile(files, UploadType.Historic, portfolio);
+            return UploadFile(files, UploadType.Historic, portfolioId);
         }
-        
+
+        [HttpPost("loa/{portfolioId}")]
+        [Consumes("application/json", "application/json-patch+json", "multipart/form-data")]
+        public Task<ObjectResult> UploadLoa(ICollection<IFormFile> files, string portfolioId)
+        {
+            return UploadFile(files, UploadType.LetterOfAuthority, portfolioId);
+        }
+
+        [HttpPost("sites/{portfolioId}")]
+        [Consumes("application/json", "application/json-patch+json", "multipart/form-data")]
+        public Task<ObjectResult> UploadSiteList(ICollection<IFormFile> files, string portfolioId)
+        {
+            return UploadFile(files, UploadType.SiteList, portfolioId);
+        }
+
         private async Task<ObjectResult> UploadFile(ICollection<IFormFile> files, UploadType uploadType, string portfolio)
         {
             var fileCount = files.Count;
-            _log.LogInformation($"Received request to upload [{fileCount}] [{uploadType}] files by user [Unauthenticated] for portfolio [{portfolio}]");
+            _log.LogInformation($"Received request to upload [{fileCount}] [{uploadType}] files by user [Unauthenticated] for portfolioId [{portfolio}]");
             var successfulUploads = new List<string>();
             foreach (var file in files)
             {
@@ -113,7 +126,7 @@ namespace RLS.PortfolioGeneration.UploadAPI.Controllers
             return container.GetBlockBlobReference(fileName);
         }
 
-        private async Task<string> UploadFile(Stream stream, string fileName, UploadType type, string portfolio, string user)
+        private async Task<string> UploadFile(Stream stream, string fileName, UploadType type, string portfolioId, string user)
         {
             var blockBlob = GetBlockBlobForFileName(fileName);
             
@@ -122,7 +135,7 @@ namespace RLS.PortfolioGeneration.UploadAPI.Controllers
 
             _log.LogInformation($"Setting blob metadata: [{fileName}]");
             blockBlob.Metadata.Add("uploadType", type.ToString());
-            blockBlob.Metadata.Add("portfolio", portfolio);
+            blockBlob.Metadata.Add("portfolioId", portfolioId);
             blockBlob.Metadata.Add("user", user);
             blockBlob.Metadata.Add("uploadTime", DateTime.UtcNow.ToString("O"));
             await blockBlob.SetMetadataAsync();

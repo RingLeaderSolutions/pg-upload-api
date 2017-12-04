@@ -3,7 +3,9 @@
     public enum UploadType
     {
         Unknown,
-        Topline,
+        LetterOfAuthority,
+        SiteList,
+        MeterSupplyData,
         Historic
     }
 }
