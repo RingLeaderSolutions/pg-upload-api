@@ -2,11 +2,15 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Flurl.Http;
+using Flurl.Http.Configuration;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 
 namespace RLS.PortfolioGeneration.UploadAPI
 {
@@ -28,6 +32,21 @@ namespace RLS.PortfolioGeneration.UploadAPI
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            DefaultContractResolver contractResolver = new DefaultContractResolver
+            {
+                NamingStrategy = new CamelCaseNamingStrategy()
+            };
+
+            var serializrSettings = new JsonSerializerSettings
+            {
+                ContractResolver = contractResolver,
+            };
+
+            FlurlHttp.Configure(settings =>
+            {
+                settings.JsonSerializer =new NewtonsoftJsonSerializer(serializrSettings);
+            });
+
             services.AddCors(service =>
             {
                 service.AddPolicy("CorsPolicy",

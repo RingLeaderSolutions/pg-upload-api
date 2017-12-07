@@ -8,6 +8,6 @@
 
         public string StorageBlobName { get; set; }
 
-        public string ProcessingApiEndpoint { get; set; }
+        public string ReportUploadApiUri { get; set; }
     }
 }

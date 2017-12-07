@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -22,6 +24,7 @@ namespace RLS.PortfolioGeneration.UploadAPI.Controllers
         private readonly CloudStorageAccount _storageAccount;
         private readonly UploadApiConfiguration _configuration;
         private readonly BlobRequestOptions _blobRequestOptions;
+        private ReportUploadApiService _reportService;
 
         public UploadController(IOptions<UploadApiConfiguration> configuration, ILogger<UploadController> logger)
         {
@@ -36,37 +39,51 @@ namespace RLS.PortfolioGeneration.UploadAPI.Controllers
                 RetryPolicy = new ExponentialRetry(),
                 ServerTimeout = TimeSpan.FromSeconds(30)
             };
+
+            _reportService = new ReportUploadApiService(configuration.Value);
         }
 
         [HttpPost("supply/{portfolioId}")]
         [Consumes("application/json", "application/json-patch+json", "multipart/form-data")]
-        public Task<ObjectResult> UploadSupplyMeterData(ICollection<IFormFile> files, string portfolioId)
+        public async Task<ObjectResult> UploadSupplyMeterData(string accountId, ICollection<IFormFile> files, string portfolioId)
         {
-            return UploadFile(files, UploadType.MeterSupplyData, portfolioId);
+            var fileName = files.Single().FileName;
+
+            async void ReportAction() => await _reportService.ReportSuccessfulSupplyMeterDataUpload(portfolioId, accountId, fileName);
+            return await UploadFile(files, UploadType.MeterSupplyData, portfolioId, ReportAction);
         }
 
         [HttpPost("historic/{portfolioId}")]
         [Consumes("application/json", "application/json-patch+json", "multipart/form-data")]
-        public Task<ObjectResult> UploadHistoric(ICollection<IFormFile> files, string portfolioId)
+        public async Task<ObjectResult> UploadHistoric(ICollection<IFormFile> files, string portfolioId)
         {
-            return UploadFile(files, UploadType.Historic, portfolioId);
+            var fileName = files.Single().FileName;
+
+            async void ReportAction() => await _reportService.ReportSuccessfulHistoricalUpload(portfolioId, fileName);
+            return await UploadFile(files, UploadType.Historic, portfolioId, ReportAction);
         }
 
         [HttpPost("loa/{portfolioId}")]
         [Consumes("application/json", "application/json-patch+json", "multipart/form-data")]
-        public Task<ObjectResult> UploadLoa(ICollection<IFormFile> files, string portfolioId)
-        {
-            return UploadFile(files, UploadType.LetterOfAuthority, portfolioId);
+        public async Task<ObjectResult> UploadLoa(string accountId, ICollection<IFormFile> files, string portfolioId)
+        { 
+            var fileName = files.Single().FileName;
+
+            async void ReportAction() => await _reportService.ReportSuccessfulLoaUpload(portfolioId, accountId, fileName);
+            return await UploadFile(files, UploadType.LetterOfAuthority, portfolioId, ReportAction);
         }
 
         [HttpPost("sites/{portfolioId}")]
         [Consumes("application/json", "application/json-patch+json", "multipart/form-data")]
-        public Task<ObjectResult> UploadSiteList(ICollection<IFormFile> files, string portfolioId)
+        public async Task<ObjectResult> UploadSiteList(string accountId, ICollection<IFormFile> files, string portfolioId)
         {
-            return UploadFile(files, UploadType.SiteList, portfolioId);
+            var fileName = files.Single().FileName;
+
+            async void ReportAction() => await _reportService.ReportSuccessfulSiteListUpload(portfolioId, accountId, fileName);
+            return await UploadFile(files, UploadType.SiteList, portfolioId, ReportAction);
         }
 
-        private async Task<ObjectResult> UploadFile(ICollection<IFormFile> files, UploadType uploadType, string portfolio)
+        private async Task<ObjectResult> UploadFile(ICollection<IFormFile> files, UploadType uploadType, string portfolio, Action reportAction)
         {
             var fileCount = files.Count;
             _log.LogInformation($"Received request to upload [{fileCount}] [{uploadType}] files by user [Unauthenticated] for portfolioId [{portfolio}]");
@@ -112,9 +129,10 @@ namespace RLS.PortfolioGeneration.UploadAPI.Controllers
                 
                 return StatusCode(500, new { Error = "Upload cancelled due to internal server error."});
             }
+            
+            _log.LogInformation("Making request to processing API");
+            reportAction();
 
-            // TODO: At this point we know we have successfully uploaded all files, so we need to call the processing endpoint.
-            // _log.LogInformation("Making request to processing API");
             return Ok(new { success = true });
         }
 
