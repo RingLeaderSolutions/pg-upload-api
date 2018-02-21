@@ -47,7 +47,7 @@ namespace RLS.PortfolioGeneration.UploadAPI.Controllers
         [Consumes("application/json", "application/json-patch+json", "multipart/form-data")]
         public async Task<ObjectResult> UploadGasSupplyMeterData(string accountId, ICollection<IFormFile> files, string portfolioId)
         {
-            async void ReportAction(string uploadedFileName) => await _reportService.ReportSuccessfulSupplyMeterDataUpload(portfolioId, accountId, uploadedFileName, UtilityType.Gas);
+            async void ReportAction(string[] uploadedFileNames) => await _reportService.ReportSuccessfulSupplyMeterDataUpload(portfolioId, accountId, uploadedFileNames, UtilityType.Gas);
             return await UploadFile(files, UploadType.MeterSupplyData, portfolioId, ReportAction);
         }
 
@@ -55,7 +55,7 @@ namespace RLS.PortfolioGeneration.UploadAPI.Controllers
         [Consumes("application/json", "application/json-patch+json", "multipart/form-data")]
         public async Task<ObjectResult> UploadElectricitySupplyMeterData(string accountId, ICollection<IFormFile> files, string portfolioId)
         {
-            async void ReportAction(string uploadedFileName) => await _reportService.ReportSuccessfulSupplyMeterDataUpload(portfolioId, accountId, uploadedFileName, UtilityType.Electricity);
+            async void ReportAction(string[] uploadedFileNames) => await _reportService.ReportSuccessfulSupplyMeterDataUpload(portfolioId, accountId, uploadedFileNames, UtilityType.Electricity);
             return await UploadFile(files, UploadType.MeterSupplyData, portfolioId, ReportAction);
         }
 
@@ -63,7 +63,7 @@ namespace RLS.PortfolioGeneration.UploadAPI.Controllers
         [Consumes("application/json", "application/json-patch+json", "multipart/form-data")]
         public async Task<ObjectResult> UploadHistoric(ICollection<IFormFile> files, string portfolioId)
         {
-            async void ReportAction(string uploadedFileName) => await _reportService.ReportSuccessfulHistoricalUpload(portfolioId, uploadedFileName);
+            async void ReportAction(string[] uploadedFileNames) => await _reportService.ReportSuccessfulHistoricalUpload(portfolioId, uploadedFileNames);
             return await UploadFile(files, UploadType.Historic, portfolioId, ReportAction);
         }
 
@@ -71,7 +71,7 @@ namespace RLS.PortfolioGeneration.UploadAPI.Controllers
         [Consumes("application/json", "application/json-patch+json", "multipart/form-data")]
         public async Task<ObjectResult> UploadLoa(string accountId, ICollection<IFormFile> files, string portfolioId)
         { 
-            async void ReportAction(string uploadedFileName) => await _reportService.ReportSuccessfulLoaUpload(portfolioId, accountId, uploadedFileName);
+            async void ReportAction(string[] uploadedFileNames) => await _reportService.ReportSuccessfulLoaUpload(portfolioId, accountId, uploadedFileNames);
             return await UploadFile(files, UploadType.LetterOfAuthority, portfolioId, ReportAction);
         }
 
@@ -79,7 +79,7 @@ namespace RLS.PortfolioGeneration.UploadAPI.Controllers
         [Consumes("application/json", "application/json-patch+json", "multipart/form-data")]
         public async Task<ObjectResult> UploadSiteList(string accountId, ICollection<IFormFile> files, string portfolioId)
         {
-            async void ReportAction(string uploadedFileName) => await _reportService.ReportSuccessfulSiteListUpload(portfolioId, accountId, uploadedFileName);
+            async void ReportAction(string[] uploadedFileNames) => await _reportService.ReportSuccessfulSiteListUpload(portfolioId, accountId, uploadedFileNames);
             return await UploadFile(files, UploadType.SiteList, portfolioId, ReportAction);
         }
 
@@ -87,7 +87,7 @@ namespace RLS.PortfolioGeneration.UploadAPI.Controllers
         [Consumes("application/json", "application/json-patch+json", "multipart/form-data")]
         public async Task<ObjectResult> UploadGasBackingSheet(ICollection<IFormFile> files, string tenderId)
         {
-            async void ReportAction(string uploadedFileName) => await _reportService.ReportSuccessfulGasBackingSheetUpload(tenderId, uploadedFileName);
+            async void ReportAction(string[] uploadedFileNames) => await _reportService.ReportSuccessfulGasBackingSheetUpload(tenderId, uploadedFileNames);
             return await UploadFile(files, UploadType.BackingSheet, tenderId, ReportAction);
         }
 
@@ -95,11 +95,11 @@ namespace RLS.PortfolioGeneration.UploadAPI.Controllers
         [Consumes("application/json", "application/json-patch+json", "multipart/form-data")]
         public async Task<ObjectResult> UploadElectricityBackingSheet(ICollection<IFormFile> files, string tenderId)
         {
-            async void ReportAction(string uploadedFileName) => await _reportService.ReportSuccessfulElectricityBackingSheetUpload(tenderId, uploadedFileName);
+            async void ReportAction(string[] uploadedFileNames) => await _reportService.ReportSuccessfulElectricityBackingSheetUpload(tenderId, uploadedFileNames);
             return await UploadFile(files, UploadType.BackingSheet, tenderId, ReportAction);
         }
 
-        private async Task<ObjectResult> UploadFile(ICollection<IFormFile> files, UploadType uploadType, string portfolio, Action<string> reportAction)
+        private async Task<ObjectResult> UploadFile(ICollection<IFormFile> files, UploadType uploadType, string portfolio, Action<string[]> reportAction)
         {
             var fileCount = files.Count;
             _log.LogInformation($"Received request to upload [{fileCount}] [{uploadType}] files by user [Unauthenticated] for portfolioId [{portfolio}]");
@@ -148,11 +148,8 @@ namespace RLS.PortfolioGeneration.UploadAPI.Controllers
             
             _log.LogInformation("Making request to processing API");
 
-            foreach (var uploadedFileUri in successfulUploads)
-            {
-                var fileName = Path.GetFileName(uploadedFileUri);
-                reportAction(fileName);
-            }
+            var uploadedPaths = successfulUploads.Select(Path.GetFileName).ToArray();
+            reportAction(uploadedPaths);
             
             return Ok(new { success = true });
         }

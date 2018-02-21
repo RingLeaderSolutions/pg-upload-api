@@ -13,12 +13,12 @@ namespace RLS.PortfolioGeneration.UploadAPI
             _configuration = configuration;
         }
 
-        public async Task ReportSuccessfulLoaUpload(string portfolioId, string accountId, string fileName)
+        public async Task ReportSuccessfulLoaUpload(string portfolioId, string accountId, string[] fileNames)
         {
             var payload = new ReportLoaUploadRequest
             {
                 AccountId = accountId,
-                BlobFileName = fileName,
+                BlobFileName = fileNames[0],
                 Received = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss"),
                 Expiry = DateTime.UtcNow.AddYears(1).ToString("yyyy-MM-ddTHH:mm:ss")
             };
@@ -26,24 +26,24 @@ namespace RLS.PortfolioGeneration.UploadAPI
             await MakeApiRequest($"loa/{portfolioId}", payload);
         }
 
-        public async Task ReportSuccessfulSiteListUpload(string portfolioId, string accountId, string fileName)
+        public async Task ReportSuccessfulSiteListUpload(string portfolioId, string accountId, string[] fileNames)
         {
             var payload = new ReportSiteListUploadRequest
             {
                 PortfolioId = portfolioId,
-                CsvNames = new[] { fileName },
+                CsvNames = fileNames,
                 Notes = $"Uploaded ${DateTime.UtcNow}"
             };
 
             await MakeApiRequest($"sitelist/{accountId}", payload);
         }
 
-        public async Task ReportSuccessfulSupplyMeterDataUpload(string portfolioId, string accountId, string fileName, UtilityType utility)
+        public async Task ReportSuccessfulSupplyMeterDataUpload(string portfolioId, string accountId, string[] fileNames, UtilityType utility)
         {
             var payload = new ReportSupplyDataUploadRequest
             {
                 PortfolioId = portfolioId,
-                CsvNames = new[] { fileName },
+                CsvNames = fileNames,
                 Notes = $"Uploaded ${DateTime.UtcNow}"
             };
 
@@ -51,33 +51,33 @@ namespace RLS.PortfolioGeneration.UploadAPI
             await MakeApiRequest($"supplymeterdata/{prefix}/{accountId}", payload);
         }
 
-        public async Task ReportSuccessfulHistoricalUpload(string portfolioId, string fileName)
+        public async Task ReportSuccessfulHistoricalUpload(string portfolioId, string[] fileNames)
         {
             var payload = new ReportHistoricUploadRequest
             {
-                CsvNames = new[] {fileName},
+                CsvNames = fileNames,
                 Notes = $"Uploaded ${DateTime.UtcNow}"
             };
 
             await MakeApiRequest($"historical/{portfolioId}", payload);
         }
 
-        public async Task ReportSuccessfulGasBackingSheetUpload(string tenderId, string fileName)
+        public async Task ReportSuccessfulGasBackingSheetUpload(string tenderId, string[] fileNames)
         {
             var payload = new BackingSheetUploadRequest
             {
-                CsvNames = new[] { fileName },
+                CsvNames = fileNames,
                 Notes = $"Uploaded ${DateTime.UtcNow}"
             };
 
             await MakeApiRequest($"backingsheets/{tenderId}/gas", payload);
         }
 
-        public async Task ReportSuccessfulElectricityBackingSheetUpload(string tenderId, string fileName)
+        public async Task ReportSuccessfulElectricityBackingSheetUpload(string tenderId, string[] fileNames)
         {
             var payload = new BackingSheetUploadRequest
             {
-                CsvNames = new[] { fileName },
+                CsvNames = fileNames,
                 Notes = $"Uploaded ${DateTime.UtcNow}"
             };
 
