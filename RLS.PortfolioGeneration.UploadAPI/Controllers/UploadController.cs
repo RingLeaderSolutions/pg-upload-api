@@ -43,13 +43,19 @@ namespace RLS.PortfolioGeneration.UploadAPI.Controllers
             _reportService = new ReportUploadApiService(configuration.Value);
         }
 
-        [HttpPost("supply/{portfolioId}")]
+        [HttpPost("supply/gas/{portfolioId}")]
         [Consumes("application/json", "application/json-patch+json", "multipart/form-data")]
-        public async Task<ObjectResult> UploadSupplyMeterData(string accountId, ICollection<IFormFile> files, string portfolioId)
+        public async Task<ObjectResult> UploadGasSupplyMeterData(string accountId, ICollection<IFormFile> files, string portfolioId)
         {
-            var fileName = files.Single().FileName;
+            async void ReportAction(string uploadedFileName) => await _reportService.ReportSuccessfulSupplyMeterDataUpload(portfolioId, accountId, uploadedFileName, UtilityType.Gas);
+            return await UploadFile(files, UploadType.MeterSupplyData, portfolioId, ReportAction);
+        }
 
-            async void ReportAction() => await _reportService.ReportSuccessfulSupplyMeterDataUpload(portfolioId, accountId, fileName);
+        [HttpPost("supply/electricity/{portfolioId}")]
+        [Consumes("application/json", "application/json-patch+json", "multipart/form-data")]
+        public async Task<ObjectResult> UploadElectricitySupplyMeterData(string accountId, ICollection<IFormFile> files, string portfolioId)
+        {
+            async void ReportAction(string uploadedFileName) => await _reportService.ReportSuccessfulSupplyMeterDataUpload(portfolioId, accountId, uploadedFileName, UtilityType.Electricity);
             return await UploadFile(files, UploadType.MeterSupplyData, portfolioId, ReportAction);
         }
 
@@ -57,9 +63,7 @@ namespace RLS.PortfolioGeneration.UploadAPI.Controllers
         [Consumes("application/json", "application/json-patch+json", "multipart/form-data")]
         public async Task<ObjectResult> UploadHistoric(ICollection<IFormFile> files, string portfolioId)
         {
-            var fileName = files.Single().FileName;
-
-            async void ReportAction() => await _reportService.ReportSuccessfulHistoricalUpload(portfolioId, fileName);
+            async void ReportAction(string uploadedFileName) => await _reportService.ReportSuccessfulHistoricalUpload(portfolioId, uploadedFileName);
             return await UploadFile(files, UploadType.Historic, portfolioId, ReportAction);
         }
 
@@ -67,9 +71,7 @@ namespace RLS.PortfolioGeneration.UploadAPI.Controllers
         [Consumes("application/json", "application/json-patch+json", "multipart/form-data")]
         public async Task<ObjectResult> UploadLoa(string accountId, ICollection<IFormFile> files, string portfolioId)
         { 
-            var fileName = files.Single().FileName;
-
-            async void ReportAction() => await _reportService.ReportSuccessfulLoaUpload(portfolioId, accountId, fileName);
+            async void ReportAction(string uploadedFileName) => await _reportService.ReportSuccessfulLoaUpload(portfolioId, accountId, uploadedFileName);
             return await UploadFile(files, UploadType.LetterOfAuthority, portfolioId, ReportAction);
         }
 
@@ -77,13 +79,27 @@ namespace RLS.PortfolioGeneration.UploadAPI.Controllers
         [Consumes("application/json", "application/json-patch+json", "multipart/form-data")]
         public async Task<ObjectResult> UploadSiteList(string accountId, ICollection<IFormFile> files, string portfolioId)
         {
-            var fileName = files.Single().FileName;
-
-            async void ReportAction() => await _reportService.ReportSuccessfulSiteListUpload(portfolioId, accountId, fileName);
+            async void ReportAction(string uploadedFileName) => await _reportService.ReportSuccessfulSiteListUpload(portfolioId, accountId, uploadedFileName);
             return await UploadFile(files, UploadType.SiteList, portfolioId, ReportAction);
         }
 
-        private async Task<ObjectResult> UploadFile(ICollection<IFormFile> files, UploadType uploadType, string portfolio, Action reportAction)
+        [HttpPost("backing/{tenderId}/gas")]
+        [Consumes("application/json", "application/json-patch+json", "multipart/form-data")]
+        public async Task<ObjectResult> UploadGasBackingSheet(ICollection<IFormFile> files, string tenderId)
+        {
+            async void ReportAction(string uploadedFileName) => await _reportService.ReportSuccessfulGasBackingSheetUpload(tenderId, uploadedFileName);
+            return await UploadFile(files, UploadType.BackingSheet, tenderId, ReportAction);
+        }
+
+        [HttpPost("backing/{tenderId}/electricity")]
+        [Consumes("application/json", "application/json-patch+json", "multipart/form-data")]
+        public async Task<ObjectResult> UploadElectricityBackingSheet(ICollection<IFormFile> files, string tenderId)
+        {
+            async void ReportAction(string uploadedFileName) => await _reportService.ReportSuccessfulElectricityBackingSheetUpload(tenderId, uploadedFileName);
+            return await UploadFile(files, UploadType.BackingSheet, tenderId, ReportAction);
+        }
+
+        private async Task<ObjectResult> UploadFile(ICollection<IFormFile> files, UploadType uploadType, string portfolio, Action<string> reportAction)
         {
             var fileCount = files.Count;
             _log.LogInformation($"Received request to upload [{fileCount}] [{uploadType}] files by user [Unauthenticated] for portfolioId [{portfolio}]");
@@ -100,7 +116,7 @@ namespace RLS.PortfolioGeneration.UploadAPI.Controllers
                     if (!string.IsNullOrEmpty(uri))
                     {
                         _log.LogInformation($"Successfully uploaded: [{fileName}]");
-                        successfulUploads.Add(fileName);
+                        successfulUploads.Add(uri);
                     }
                 }
                 catch (StorageException storageException)
@@ -131,8 +147,13 @@ namespace RLS.PortfolioGeneration.UploadAPI.Controllers
             }
             
             _log.LogInformation("Making request to processing API");
-            reportAction();
 
+            foreach (var uploadedFileUri in successfulUploads)
+            {
+                var fileName = Path.GetFileName(uploadedFileUri);
+                reportAction(fileName);
+            }
+            
             return Ok(new { success = true });
         }
 
@@ -144,18 +165,22 @@ namespace RLS.PortfolioGeneration.UploadAPI.Controllers
             return container.GetBlockBlobReference(fileName);
         }
 
-        private async Task<string> UploadFile(Stream stream, string fileName, UploadType type, string portfolioId, string user)
+        private async Task<string> UploadFile(Stream stream, string originalFilename, UploadType type, string portfolioId, string user)
         {
-            var blockBlob = GetBlockBlobForFileName(fileName);
+            var extension = Path.GetExtension(originalFilename);
+            var newFilename = Guid.NewGuid() + extension;
+
+            var blockBlob = GetBlockBlobForFileName(newFilename);
             
-            _log.LogInformation($"Sending upload request for blob file: [{fileName}]");
+            _log.LogInformation($"Sending upload request for blob file: [{originalFilename}] - [{newFilename}]");
             await blockBlob.UploadFromStreamAsync(stream, AccessCondition.GenerateIfNotExistsCondition(), _blobRequestOptions, new OperationContext());
 
-            _log.LogInformation($"Setting blob metadata: [{fileName}]");
+            _log.LogInformation($"Setting blob metadata: [{originalFilename} - {newFilename}]");
             blockBlob.Metadata.Add("uploadType", type.ToString());
             blockBlob.Metadata.Add("portfolioId", portfolioId);
             blockBlob.Metadata.Add("user", user);
             blockBlob.Metadata.Add("uploadTime", DateTime.UtcNow.ToString("O"));
+            blockBlob.Metadata.Add("originalFilename", originalFilename);
             await blockBlob.SetMetadataAsync();
 
             stream.Dispose();
@@ -170,4 +195,4 @@ namespace RLS.PortfolioGeneration.UploadAPI.Controllers
             await blockBlob.DeleteAsync(DeleteSnapshotsOption.IncludeSnapshots, AccessCondition.GenerateEmptyCondition(), _blobRequestOptions, new OperationContext());
         }
     }
-}
+}   

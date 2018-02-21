@@ -38,7 +38,7 @@ namespace RLS.PortfolioGeneration.UploadAPI
             await MakeApiRequest($"sitelist/{accountId}", payload);
         }
 
-        public async Task ReportSuccessfulSupplyMeterDataUpload(string portfolioId, string accountId, string fileName)
+        public async Task ReportSuccessfulSupplyMeterDataUpload(string portfolioId, string accountId, string fileName, UtilityType utility)
         {
             var payload = new ReportSupplyDataUploadRequest
             {
@@ -47,7 +47,8 @@ namespace RLS.PortfolioGeneration.UploadAPI
                 Notes = $"Uploaded ${DateTime.UtcNow}"
             };
 
-            await MakeApiRequest($"supplymeterdata/{accountId}", payload);
+            var prefix = utility == UtilityType.Electricity ? "electricity" : "gas";
+            await MakeApiRequest($"supplymeterdata/{prefix}/{accountId}", payload);
         }
 
         public async Task ReportSuccessfulHistoricalUpload(string portfolioId, string fileName)
@@ -58,7 +59,29 @@ namespace RLS.PortfolioGeneration.UploadAPI
                 Notes = $"Uploaded ${DateTime.UtcNow}"
             };
 
-            await MakeApiRequest($"portfolio/{portfolioId}", payload);
+            await MakeApiRequest($"historical/{portfolioId}", payload);
+        }
+
+        public async Task ReportSuccessfulGasBackingSheetUpload(string tenderId, string fileName)
+        {
+            var payload = new BackingSheetUploadRequest
+            {
+                CsvNames = new[] { fileName },
+                Notes = $"Uploaded ${DateTime.UtcNow}"
+            };
+
+            await MakeApiRequest($"backingsheets/{tenderId}/gas", payload);
+        }
+
+        public async Task ReportSuccessfulElectricityBackingSheetUpload(string tenderId, string fileName)
+        {
+            var payload = new BackingSheetUploadRequest
+            {
+                CsvNames = new[] { fileName },
+                Notes = $"Uploaded ${DateTime.UtcNow}"
+            };
+
+            await MakeApiRequest($"backingsheets/{tenderId}/electricity", payload);
         }
 
         private async Task MakeApiRequest(string endPoint, object postData)
@@ -110,6 +133,15 @@ namespace RLS.PortfolioGeneration.UploadAPI
         public string PortfolioId { get; set; }
 
         public string UploadType { get; } = "SITELIST";
+
+        public string[] CsvNames { get; set; }
+
+        public string Notes { get; set; }
+    }
+
+    public sealed class BackingSheetUploadRequest
+    {
+        public string UploadType { get; } = "BACKINGSHEETS";
 
         public string[] CsvNames { get; set; }
 
