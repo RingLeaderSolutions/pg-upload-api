@@ -141,7 +141,7 @@ namespace RLS.PortfolioGeneration.UploadAPI
 
     public sealed class BackingSheetUploadRequest
     {
-        public string UploadType { get; } = "BACKINGSHEETS";
+        public string UploadType { get; } = "CONTRACT_BACKINGSHEETS";
 
         public string[] CsvNames { get; set; }
 
