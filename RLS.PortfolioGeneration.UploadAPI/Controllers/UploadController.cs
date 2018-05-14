@@ -43,18 +43,18 @@ namespace RLS.PortfolioGeneration.UploadAPI.Controllers
             _reportService = new ReportUploadApiService(configuration.Value);
         }
 
-        [HttpPost("supply/gas/{portfolioId}")]
+        [HttpPost("supply/gas/{accountId}")]
         [Consumes("application/json", "application/json-patch+json", "multipart/form-data")]
-        public async Task<ObjectResult> UploadGasSupplyMeterData(ICollection<IFormFile> files, string portfolioId)
+        public async Task<ObjectResult> UploadGasSupplyMeterData(ICollection<IFormFile> files, string accountId)
         {
-            return await UploadFile(files, UploadType.MeterSupplyData, portfolioId);
+            return await UploadFile(files, UploadType.MeterSupplyData, accountId);
         }
 
-        [HttpPost("supply/electricity/{portfolioId}")]
+        [HttpPost("supply/electricity/{accountId}")]
         [Consumes("application/json", "application/json-patch+json", "multipart/form-data")]
-        public async Task<ObjectResult> UploadElectricitySupplyMeterData(ICollection<IFormFile> files, string portfolioId)
+        public async Task<ObjectResult> UploadElectricitySupplyMeterData(ICollection<IFormFile> files, string accountId)
         {
-            return await UploadFile(files, UploadType.MeterSupplyData, portfolioId);
+            return await UploadFile(files, UploadType.MeterSupplyData, accountId);
         }
 
         [HttpPost("historic/{portfolioId}")]
@@ -99,10 +99,10 @@ namespace RLS.PortfolioGeneration.UploadAPI.Controllers
             return await UploadFile(files, UploadType.BackingSheet, tenderId);
         }
 
-        private async Task<ObjectResult> UploadFile(ICollection<IFormFile> files, UploadType uploadType, string portfolio)
+        private async Task<ObjectResult> UploadFile(ICollection<IFormFile> files, UploadType uploadType, string entityId)
         {
             var fileCount = files.Count;
-            _log.LogInformation($"Received request to upload [{fileCount}] [{uploadType}] files by user [Unauthenticated] for portfolioId [{portfolio}]");
+            _log.LogInformation($"Received request to upload [{fileCount}] [{uploadType}] files by user [Unauthenticated] for entity [{entityId}]");
             var successfulUploads = new List<string>();
             foreach (var file in files)
             {
@@ -112,7 +112,7 @@ namespace RLS.PortfolioGeneration.UploadAPI.Controllers
                 try
                 {
                     _log.LogInformation($"Attempting to upload file: [{fileName}]");
-                    var uri = await UploadFile(stream, fileName, uploadType, portfolio, "Unauthenticated");
+                    var uri = await UploadFile(stream, fileName, uploadType, entityId, "Unauthenticated");
                     if (!string.IsNullOrEmpty(uri))
                     {
                         _log.LogInformation($"Successfully uploaded: [{fileName}]");
