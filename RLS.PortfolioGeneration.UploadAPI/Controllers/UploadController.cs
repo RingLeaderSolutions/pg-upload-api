@@ -71,6 +71,13 @@ namespace RLS.PortfolioGeneration.UploadAPI.Controllers
             return await UploadFile(files, UploadType.LetterOfAuthority, portfolioId);
         }
 
+        [HttpPost("account/{accountId}")]
+        [Consumes("application/json", "application/json-patch+json", "multipart/form-data")]
+        public async Task<ObjectResult> UploadAccountDocument(ICollection<IFormFile> files, string accountId)
+        {
+            return await UploadFile(files, UploadType.AccountDocument, accountId);
+        }
+
         [HttpPost("sites/{portfolioId}")]
         [Consumes("application/json", "application/json-patch+json", "multipart/form-data")]
         public async Task<ObjectResult> UploadSiteList(ICollection<IFormFile> files, string portfolioId)

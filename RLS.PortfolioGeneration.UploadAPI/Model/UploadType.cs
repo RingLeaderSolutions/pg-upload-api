@@ -7,6 +7,7 @@
         SiteList,
         MeterSupplyData,
         Historic,
-        BackingSheet
+        BackingSheet,
+        AccountDocument
     }
 }
