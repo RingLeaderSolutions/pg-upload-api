@@ -64,25 +64,11 @@ namespace RLS.PortfolioGeneration.UploadAPI.Controllers
             return await UploadFile(files, UploadType.Historic, portfolioId);
         }
 
-        [HttpPost("loa/{portfolioId}")]
-        [Consumes("application/json", "application/json-patch+json", "multipart/form-data")]
-        public async Task<ObjectResult> UploadLoa(ICollection<IFormFile> files, string portfolioId)
-        { 
-            return await UploadFile(files, UploadType.LetterOfAuthority, portfolioId);
-        }
-
         [HttpPost("account/{accountId}")]
         [Consumes("application/json", "application/json-patch+json", "multipart/form-data")]
         public async Task<ObjectResult> UploadAccountDocument(ICollection<IFormFile> files, string accountId)
         {
             return await UploadFile(files, UploadType.AccountDocument, accountId);
-        }
-
-        [HttpPost("sites/{portfolioId}")]
-        [Consumes("application/json", "application/json-patch+json", "multipart/form-data")]
-        public async Task<ObjectResult> UploadSiteList(ICollection<IFormFile> files, string portfolioId)
-        {
-            return await UploadFile(files, UploadType.SiteList, portfolioId);
         }
 
         [HttpPost("backing/{tenderId}/gas")]
@@ -104,6 +90,13 @@ namespace RLS.PortfolioGeneration.UploadAPI.Controllers
         public async Task<ObjectResult> UploadOffer(ICollection<IFormFile> files, string tenderId)
         {
             return await UploadFile(files, UploadType.BackingSheet, tenderId);
+        }
+
+        [HttpPost("collateral/{tenderId}")]
+        [Consumes("application/json", "application/json-patch+json", "multipart/form-data")]
+        public async Task<ObjectResult> UploadQuoteCollateral(ICollection<IFormFile> files, string tenderId)
+        {
+            return await UploadFile(files, UploadType.QuoteCollateral, tenderId);
         }
 
         private async Task<ObjectResult> UploadFile(ICollection<IFormFile> files, UploadType uploadType, string entityId)

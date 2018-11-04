@@ -3,11 +3,10 @@
     public enum UploadType
     {
         Unknown,
-        LetterOfAuthority,
-        SiteList,
         MeterSupplyData,
         Historic,
         BackingSheet,
-        AccountDocument
+        AccountDocument,
+        QuoteCollateral
     }
 }
